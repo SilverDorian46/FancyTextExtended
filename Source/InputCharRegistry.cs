@@ -52,7 +52,7 @@ public static class InputCharRegistry
         fakeXml.SetAttr("width", texture.Width);
         fakeXml.SetAttr("height", texture.Height);
         fakeXml.SetAttr("xoffset", 0);
-        fakeXml.SetAttr("yoffset", 0);
+        fakeXml.SetAttr("yoffset", -8);
         fakeXml.SetAttr("xadvance", (int)(texture.Width * texture.ScaleFix));
 
         var pixelFontChar = new PixelFontCharacter(inputChar, texture, fakeXml);

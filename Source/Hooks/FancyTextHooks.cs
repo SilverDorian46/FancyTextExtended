@@ -143,30 +143,6 @@ internal static class FancyTextHooks
         return true;
     }
 
-    // previous iteration: inserting them as Emoji
-    /*private static void AddInputButton(FancyText fText, VirtualButton button)
-    {
-        // because this Input.GuiButton is an ambiguous call, we've had to specify the default prefix mode
-        AddInputTextureAsChar(fText, Input.GuiButton(button, Input.PrefixMode.Latest));
-    }
-
-    private static void AddInputDirection(FancyText fText, Vector2 direction)
-    {
-        AddInputTextureAsChar(fText, Input.GuiDirection(direction));
-    }*/
-
-    /*private static void AddInputTextureAsChar(FancyText fText, MTexture texture)
-    {
-        string emojiName = "../" + texture.AtlasPath;
-        if (Emoji.Registered.IndexOf(emojiName) < 0)
-        {
-            Emoji.Register(emojiName, texture);
-            Emoji.Fill(fText.font);
-        }
-
-        fText.AddWord($":{emojiName}:");
-    }*/
-
     private static void IL_orig_AddWord(ILContext il)
     {
         ILCursor cur = new(il);

@@ -15,9 +15,9 @@ fancyTextExtended_testDialog=
 	
 	[BADELINE right normal]
 	Include some {*}staggering effects{/*} and {~}special flair{/~} to your words and make them {!}pop!{/!}{0.5} or {%}fall apart{/%}...
-	or even {big}make them big.{/big}
-	It's sometimes {s 12} a good idea {s 12} to give some space.
-	By the way, you have jumped a total number of {savedata TotalJumps} times.
+	or even {big}make them grow big.{/big}
+	You can also {s 16} leave some space.
+	By the way, did you know you have jumped a total number of {savedata TotalJumps} times?
 	
 	[MADELINE left normal]
 	Now let's try some new commands:

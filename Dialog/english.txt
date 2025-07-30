@@ -1,0 +1,28 @@
+# Test Dialog
+
+fancyTextExtended_testDialog=
+	[MADELINE left normal]
+	Using base game commands:
+	
+	Pause {1.5}for 1.5 seconds.
+	Some {# red}co{# green}lo{# blue}ur{#}fu{#}l{#} text.
+	Manual page break{break}and a new{n}line.
+	Talk normally, {0.5}{>> 2}babble about stuff very quickly, {0.5}{>> 0.5}or carefully enunciate your words.{/>>}
+	{anchor bottom} Move the text box {anchor middle} to one of three positions.
+	{anchor top}
+
+	{trigger 0 Badeline come out}
+	
+	[BADELINE right normal]
+	Include some {*}staggering effects{/*} and {~}special flair{/~} to your words and make them {!}pop!{/!}{0.5} or {%}fall apart{/%}...
+	or even {big}make them big.{/big}
+	It's sometimes {s 12} a good idea {s 12} to give some space.
+	By the way, you have jumped a total number of {savedata TotalJumps} times.
+	
+	[MADELINE left normal]
+	Now let's try some new commands:
+	
+	With these, we can do a bit more than we could previously.
+	{ftx:notalk}{+thought}Such as doing internal monologues without uttering a single word.{+endthought}{/ftx:notalk}
+	We can even say buttons: press {ftx:input Jump} to jump,{n}and use {ftx:input MoveY -1} to look up!
+	This one {ftx:input 1 0} goes right, and even {ftx:input -1 -1} diagonally.

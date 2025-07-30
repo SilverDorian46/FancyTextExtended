@@ -12,7 +12,7 @@ namespace Celeste.Mod.FancyTextExtended.Hooks;
 
 internal static class FancyTextHooks
 {
-    private readonly static MethodInfo m_orig_AddWord = typeof(FancyText)
+    private static readonly MethodInfo m_orig_AddWord = typeof(FancyText)
         .GetMethod("orig_" + nameof(FancyText.AddWord), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
     private static ILHook? hook_orig_AddWord;

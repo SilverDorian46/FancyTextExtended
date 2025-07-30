@@ -11,13 +11,13 @@ namespace Celeste.Mod.FancyTextExtended.Hooks;
 
 internal static class TextboxHooks
 {
-    private readonly static MethodInfo m_RunRoutine_MoveNext = typeof(Textbox)
+    private static readonly MethodInfo m_RunRoutine_MoveNext = typeof(Textbox)
         .GetMethod(nameof(Textbox.RunRoutine), BindingFlags.NonPublic | BindingFlags.Instance)!
         .GetStateMachineTarget()!;
-    private readonly static MethodInfo m_EaseOpen_MoveNext = typeof(Textbox)
+    private static readonly MethodInfo m_EaseOpen_MoveNext = typeof(Textbox)
         .GetMethod(nameof(Textbox.EaseOpen), BindingFlags.NonPublic | BindingFlags.Instance)!
         .GetStateMachineTarget()!;
-    private readonly static MethodInfo m_EaseClose_MoveNext = typeof(Textbox)
+    private static readonly MethodInfo m_EaseClose_MoveNext = typeof(Textbox)
         .GetMethod(nameof(Textbox.EaseClose), BindingFlags.NonPublic | BindingFlags.Instance)!
         .GetStateMachineTarget()!;
 

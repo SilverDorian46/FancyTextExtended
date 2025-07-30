@@ -110,6 +110,8 @@ This inserts an input graphic into the text. What graphic is inserted depends on
         More commonly called the "Demodash" in honour of Demo Jameson who discovered the move.
   </details>
 
+  This mod also provides an export for registering inputs from other mods. See the ModInterop section further below.
+
 - **`<x(int)> <y(int)>`**: This indicates a direction input graphic. Both arguments represent the X and Y values of the direction, and accept a negative number, zero, or a positive number (`-1`, `0`, or `-1`).
   
   *Example: `{ftx:input 1 0}` inserts an arrow pointing to the right.*
@@ -131,3 +133,33 @@ Plays a background static noise when a portrait with this attribute is active. A
 Plays a custom sound when the textbox from this portrait ID opens or closes. Accepts a value which refers to two similarly named audio events - one suffixed with `_in`, and the other suffixed with `_out`.
 
 By default, the base game plays the `event:/ui/game/textbox_madeline` events when the active portrait's sprite name contains `madeline`, and the `event:/ui/game/textbox_other` events otherwise.
+
+## ModInterop
+
+So far, this mod provides one exported function for registering inputs from other mods for use with the `{ftx:input ...}` Dialog command.
+
+This function called **`RegisterInputName`** has two parameters:
+
+- **`string name`**: The name of the input. It's recommended to include a reference to your mod in order to avoid potential conflicts.
+
+- **`Func<VirtualInput> inputGetter`**: A callback that gets the input field as a `VirtualInput` directly from the mod that contains it.
+
+In order to use it, you import this class into your mod project:
+```cs
+[ModImportName("FancyTextExtended")]
+public static class FancyTextExtImports
+{
+    public static Action<string, Func<VirtualInput>> RegisterInputName;
+}
+```
+
+Then you include these lines into your project's module:
+```cs
+// top of class file
+using MonoMod.Utils;
+
+// body of Load() method
+typeof(FancyTextExtImports).ModInterop();
+```
+
+See [this Everest wiki article](https://github.com/EverestAPI/Resources/wiki/Cross-Mod-Functionality#modinterop) to know more about ModInterop.

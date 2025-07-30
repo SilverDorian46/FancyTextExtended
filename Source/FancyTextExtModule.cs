@@ -29,11 +29,13 @@ public class FancyTextExtModule : EverestModule
     {
         FancyTextHooks.Load();
         TextboxHooks.Load();
+        MiniTextboxHooks.Load();
     }
 
     public override void Unload()
     {
         FancyTextHooks.Unload();
         TextboxHooks.Unload();
+        MiniTextboxHooks.Unload();
     }
 }

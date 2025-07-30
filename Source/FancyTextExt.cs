@@ -9,17 +9,21 @@ public static class FancyTextExt
         public string Name = name;
         public Func<VirtualInput> InputGetter = getter;
 
+        public abstract string InputName { get; }
+
         public abstract VirtualButton Button { get; }
 
         public char SetFontCharWithButton(PixelFontSize fontSize)
-            => InputCharRegistry.SetInputButtonToFont(Name, Button, fontSize);
+            => InputCharRegistry.SetInputButtonToFont(InputName, Button, fontSize);
 
         public float UpdateFontCharAndGetWidthDifference(PixelFontSize fontSize, float charScale = 1)
-            => InputCharRegistry.UpdateAndGetWidthDifference(Name, Button, fontSize, charScale);
+            => InputCharRegistry.UpdateAndGetWidthDifference(InputName, Button, fontSize, charScale);
     }
 
     public class InputButton(string name, Func<VirtualInput> getter) : AbstractInputIcon(name, getter)
     {
+        public override string InputName => Name;
+
         public override VirtualButton Button => (VirtualButton)InputGetter();
     }
 
@@ -34,6 +38,8 @@ public static class FancyTextExt
             dummyButton = new();
             dummyButton.Deregister();
         }
+
+        public override string InputName => Name + (Positive ? "_Positive" : "_Negative");
 
         public override VirtualButton Button
         {
@@ -68,6 +74,8 @@ public static class FancyTextExt
             dummyButton = new();
             dummyButton.Deregister();
         }
+
+        public override string InputName => Name + "_" + Direction.ToString();
 
         public override VirtualButton Button
         {

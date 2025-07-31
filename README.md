@@ -2,7 +2,7 @@
 
 This mod for Celeste implements some extra functionality for Dialog entries that are used with Fancy Text, such as Textbox messages.
 
-When using this mod, please ensure that you include it in your `everest.yaml`. Also be sure to update the referenced version when using newer features.
+When using features from this mod, please ensure that you include it in your `everest.yaml`. Also be sure to update the referenced version when using newer features.
 
 ```yaml
   Dependencies:
@@ -112,7 +112,7 @@ This inserts an input graphic into the text. What graphic is inserted depends on
 
   This mod also provides an export for registering inputs from other mods. See the ModInterop section further below.
 
-- **`<x(int)> <y(int)>`**: This indicates a direction input graphic. Both arguments represent the X and Y values of the direction, and accept a negative number, zero, or a positive number (`-1`, `0`, or `-1`).
+- **`<x(int)> <y(int)>`**: This indicates a direction input graphic. Both arguments represent the X and Y values of the direction, and accept a negative number, zero, or a positive number (`-1`, `0`, or `1`).
   
   *Example: `{ftx:input 1 0}` inserts an arrow pointing to the right.*
 

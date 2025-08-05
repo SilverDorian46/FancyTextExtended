@@ -21,7 +21,7 @@ public class FancyTextExtModule : EverestModule
         Logger.SetLogLevel(nameof(FancyTextExtModule), LogLevel.Verbose);
 #else
         // release builds use info logging to reduce spam in log files
-        Logger.SetLogLevel(nameof(FancyTextExtendedModule), LogLevel.Info);
+        Logger.SetLogLevel(nameof(FancyTextExtModule), LogLevel.Info);
 #endif
     }
 

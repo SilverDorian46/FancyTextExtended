@@ -7,22 +7,23 @@ fancyTextExtended_testDialog=
 	Pause {1.5}for 1.5 seconds.
 	Some {# red}co{# green}lo{# blue}ur{#}fu{#}l{#} text.
 	Manual page break{break}and a new{n}line.
-	Talk normally, {0.5}{>> 2}babble about stuff very quickly, {0.5}{>> 0.5}or carefully enunciate your words.{/>>}
-	{anchor bottom} Move the text box {anchor middle} to one of three positions.
-	{anchor top}
+	Talk normally, {0.5}{>> 2}chatter about things very hastily, {0.5}{>> 0.5}or enunciate your words very carefully.{/>>}
+	{anchor bottom} Move the text box {anchor middle} to one of {anchor top}three positions.
 
 	{trigger 0 Badeline come out}
 	
 	[BADELINE right normal]
-	Include some {*}staggering effects{/*} and {~}special flair{/~} to your words and make them {!}pop!{/!}{0.5} or {%}fall apart{/%}...
-	or even {big}make them grow big.{/big}
-	You can also {s 16} leave some space.
-	By the way, did you know you have jumped a total number of {savedata TotalJumps} times?
+	There are some effects you can use to give {~}special flair{/~} to your words, sometimes in a {*}staggering{/*} manner.
+	Give your words some {!}impact!{/!} or let them {%}fall apart...{/%}
+	You can {big}increase their size{/big} as well.
+	And this{s 12} will space them out.{s 16} Significantly.
+	Did you know you have jumped a total number of {savedata TotalJumps} times?
 	
 	[MADELINE left normal]
 	Now let's try some new commands:
 	
 	With these, we can do a bit more than we could previously.
-	{ftx:notalk}{+thought}Such as doing internal monologues without uttering a single word.{+endthought}{/ftx:notalk}
+	{ftx:notalk}{+thought}Such as internal monologues while keeping our mouths shut.{+endthought}{/ftx:notalk}
 	We can even say buttons: press {ftx:input Jump} to jump,{n}and use {ftx:input MoveY -1}{ftx:input MoveY 1} to look up and down!
-	This one {ftx:input 1 0} goes right, and even {ftx:input -1 -1} diagonally.
+	This direction {ftx:input 1 0} goes right, and this one {ftx:input -1 -1} goes diagonally.
+	Now, press {ftx:input MenuConfirm} here:{ftx:await}{n}We can also wait for input{ftx:await} in the middle of the text,{n}just like that!

@@ -25,6 +25,9 @@ internal static class FancyTextHooks
 
         On.Celeste.FancyText.Text.Draw += On_Text_Draw;
         On.Celeste.FancyText.Text.DrawJustifyPerLine += On_Text_DrawJustifyPerLine;
+
+        IL.Celeste.FancyText.Text.Draw += IL_Text_Draw;
+        IL.Celeste.FancyText.Text.DrawJustifyPerLine += IL_Text_DrawJustifyPerLine;
     }
 
     internal static void Unload()
@@ -35,6 +38,9 @@ internal static class FancyTextHooks
 
         On.Celeste.FancyText.Text.Draw -= On_Text_Draw;
         On.Celeste.FancyText.Text.DrawJustifyPerLine -= On_Text_DrawJustifyPerLine;
+
+        IL.Celeste.FancyText.Text.Draw -= IL_Text_Draw;
+        IL.Celeste.FancyText.Text.DrawJustifyPerLine -= IL_Text_DrawJustifyPerLine;
     }
 
     private static void IL_Parse(ILContext il)
@@ -75,19 +81,26 @@ internal static class FancyTextHooks
 
         switch (cmd)
         {
-            case NoTalkCmd:
-                fTextData.Set(CurrentNoTalkField, true);
-                return true;
+        case NoTalkCmd:
+            fTextData.Set(CurrentNoTalkField, true);
+            return true;
 
-            case EndNoTalkCmd:
-                fTextData.Set(CurrentNoTalkField, false);
-                return true;
+        case EndNoTalkCmd:
+            fTextData.Set(CurrentNoTalkField, false);
+            return true;
 
-            case InputCmd:
-                if (TryAddInputDirection(fText, paramList)) { }
-                else if (TryAddInputIcon(fText, paramList)) { }
-                else fText.AddWord("\0");
-                return true;
+        case InputCmd:
+            if (TryAddInputDirection(fText, paramList)) { }
+            else if (TryAddInputIcon(fText, paramList)) { }
+            else fText.AddWord("\0");
+            return true;
+
+        case AwaitCmd:
+            fText.group.Nodes.Add(new AwaitNode
+            {
+                Position = fText.currentPosition
+            });
+            return true;
         }
 
         return false;
@@ -208,6 +221,129 @@ internal static class FancyTextHooks
                 float difference = inputIcon.UpdateFontCharAndGetWidthDifference(text.Font.Get(text.BaseSize), charScale);
                 RecalculateCharPositions(text, j + 1, difference);
             }
+        }
+    }
+
+    private static void IL_Text_Draw(ILContext il)
+    {
+        ILCursor cur = new(il);
+
+        /*
+         for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+         {
+             if (Nodes[j] is NewLine) { [...] }
+             [...]
+             
+              <-- Text_OnDrawCurrentNode(this, j, position, scale, start);
+         }
+         */
+
+        ILLabel? endOfIterationLabel = default!;
+
+        cur.GotoNext(instr => instr.MatchStloc(6)) // j
+            .GotoNext(instr => instr.MatchIsinst<FancyText.Char>())
+            .GotoNext(instr => instr.MatchBrfalse(out endOfIterationLabel));
+
+        cur.Goto(endOfIterationLabel.Target, MoveType.AfterLabel);
+
+        cur.EmitLdarg0(); // this
+        cur.EmitLdloc(6); // j
+        cur.EmitLdarg1(); // position
+        cur.EmitLdarg3(); // scale
+        cur.EmitLdarg(5); // start
+        // Text_OnDrawCurrentNode(this, j, position, scale, start)
+        cur.EmitDelegate(Text_OnDrawCurrentNode);
+
+
+        Logger.Info(nameof(FancyTextExtended), il.ToString());
+    }
+
+    private static void Text_OnDrawCurrentNode(FancyText.Text text, int i,
+        Vector2 position, Vector2 scale, int start)
+    {
+        if (text.Nodes[i] is AwaitNode awaitNode && awaitNode.IsVisible())
+        {
+            float charHeight = 0;
+            for (int j = i - 1; j >= start; j--)
+            {
+                Node nodeJ = text.Nodes[j];
+                if (nodeJ is FancyText.Char ch)
+                {
+                    charHeight = (text.Font.Get(text.BaseSize).LineHeight - 8) * ch.Scale * scale.Y;
+                    break;
+                }
+                else if (nodeJ is NewLine or NewPage)
+                    break;
+            }
+            position.X += 8 * scale.X;
+            position.Y += charHeight;
+
+            awaitNode.Draw(text.Font, text.BaseSize, position, scale);
+        }
+    }
+
+    private static void IL_Text_DrawJustifyPerLine(ILContext il)
+    {
+        ILCursor cur = new(il);
+
+        /*
+         for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
+         {
+             if (Nodes[j] is NewLine) { [...] }
+             [...]
+             
+              <-- Text_OnDrawCurrentNodeJustifyPerLine(this, j, position, scale, justify, num3, start);
+         }
+         */
+
+        ILLabel? endOfIterationLabel = default!;
+
+        cur.GotoNext(instr => instr.MatchStloc(5)) // j
+            .GotoNext(instr => instr.MatchIsinst<FancyText.Char>())
+            .GotoNext(instr => instr.MatchBrfalse(out endOfIterationLabel));
+
+        cur.Goto(endOfIterationLabel.Target, MoveType.AfterLabel);
+
+        cur.EmitLdarg0(); // this
+        cur.EmitLdloc(5); // j
+        cur.EmitLdarg1(); // position
+        cur.EmitLdarg3(); // scale
+        cur.EmitLdarg2(); // justify
+        cur.EmitLdloc2(); // num3
+        cur.EmitLdarg(5); // start
+        // Text_OnDrawCurrentNodeJustifyPerLine(this, j, position, scale, justify, num3, start)
+        cur.EmitDelegate(Text_OnDrawCurrentNodeJustifyPerLine);
+
+
+        Logger.Info(nameof(FancyTextExtended), il.ToString());
+    }
+
+    // This hasn't been tested, so it's not likely to work properly.
+    private static void Text_OnDrawCurrentNodeJustifyPerLine(FancyText.Text text, int i,
+        Vector2 position, Vector2 scale, Vector2 justify, float heightSpan, int start)
+    {
+        if (text.Nodes[i] is AwaitNode awaitNode && awaitNode.IsVisible())
+        {
+            float charHeight = 0;
+            float lineHeight = text.Font.Get(text.BaseSize).LineHeight;
+            Vector2 offset = new(0, heightSpan * lineHeight);
+            for (int j = i - 1; j >= start; j--)
+            {
+                Node nodeJ = text.Nodes[j];
+                if (nodeJ is FancyText.Char ch)
+                {
+                    offset.X = ch.LineWidth;
+                    charHeight = (lineHeight - 8) * ch.Scale * scale.Y;
+                    break;
+                }
+                else if (nodeJ is NewLine or NewPage)
+                    break;
+            }
+            offset = -justify * offset * scale;
+            position.X += 8 * scale.X;
+            position.Y += charHeight;
+
+            awaitNode.Draw(text.Font, text.BaseSize, position + offset, scale);
         }
     }
 }

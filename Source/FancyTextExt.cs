@@ -4,6 +4,9 @@ namespace Celeste.Mod.FancyTextExtended;
 
 public static class FancyTextExt
 {
+    /// <summary>
+    /// Used for displaying an input icon in text
+    /// </summary>
     public abstract class AbstractInputIcon(string name, Func<VirtualInput> getter) : FancyText.Node
     {
         public string Name = name;
@@ -96,10 +99,32 @@ public static class FancyTextExt
         }
     }
 
+    /// <summary>
+    /// Waits for input in the middle of the page
+    /// </summary>
+    public class AwaitNode : FancyText.Node
+    {
+        public float Position;
+
+        public Func<bool> IsVisible = () => false;
+
+        public float Timer;
+
+        public void Draw(PixelFont textFont, float baseSize, Vector2 position, Vector2 textScale)
+        {
+            position.X += (Position * textScale.X) + ((Timer % 1 < 0.25f) ? 6 : 0);
+
+            GFX.Gui["textboxbutton"].Draw(position, origin: Vector2.Zero, Color.White,
+                scale: 1, rotation: -MathF.PI / 2f);
+        }
+    }
+
     public const string NoTalkCmd = "ftx:notalk";
     public const string EndNoTalkCmd = "/ftx:notalk";
 
     public const string InputCmd = "ftx:input";
+
+    public const string AwaitCmd = "ftx:await";
 
     /// <summary>field for <see cref="FancyText.Char"/> of type <see cref="bool"/></summary>
     public const string Char_NoTalkField = "FancyTextExt:NoTalk";
@@ -120,6 +145,9 @@ public static class FancyTextExt
             
             if (text.Nodes[i] is FancyText.Char @char)
                 @char.Position += difference;
+
+            if (text.Nodes[i] is AwaitNode awaitNode)
+                awaitNode.Position += difference;
         }
         i--;
         for (; i >= 0; i--)

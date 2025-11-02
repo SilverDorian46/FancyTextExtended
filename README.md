@@ -116,6 +116,14 @@ This inserts an input graphic into the text. What graphic is inserted depends on
   
   *Example: `{ftx:input 1 0}` inserts an arrow pointing to the right.*
 
+### **`{ftx:await}`**
+
+This stops the current line of dialog in its position mid page, and makes the textbox wait for the player's input. The line of dialog before this position will remain in the textbox until the next page.
+
+> [!Note]
+> 
+> Only works in textboxes.
+
 ## Portraits Sprite Bank attributes
 
 This mod also provides some extra attributes for your portraits sprite elements.

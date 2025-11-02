@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Reflection;
 using System.Xml;
+using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using MonoMod.Utils;
@@ -25,11 +27,17 @@ internal static class TextboxHooks
     private static ILHook? hook_EaseOpen;
     private static ILHook? hook_EaseClose;
 
+    /// <summary>field for <see cref="Textbox.RunRoutine"/> of type <see cref="IEnumerator"/></summary>
+    private const string RunRoutine_AwaitEnumField = "FancyTextExt:awaitEnum";
+
     internal static void Load()
     {
         hook_RunRoutine = new ILHook(m_RunRoutine_MoveNext, IL_RunRoutine_MoveNext);
         hook_EaseOpen = new ILHook(m_EaseOpen_MoveNext, IL_EaseOpen_MoveNext);
         hook_EaseClose = new ILHook(m_EaseClose_MoveNext, IL_EaseClose_MoveNext);
+
+        IL.Celeste.Textbox.Update += IL_Update;
+        IL.Celeste.Textbox.Render += IL_Render;
     }
 
     internal static void Unload()
@@ -37,6 +45,9 @@ internal static class TextboxHooks
         hook_RunRoutine?.Dispose(); hook_RunRoutine = null;
         hook_EaseOpen?.Dispose(); hook_EaseOpen = null;
         hook_EaseClose?.Dispose(); hook_EaseClose = null;
+
+        IL.Celeste.Textbox.Update -= IL_Update;
+        IL.Celeste.Textbox.Render -= IL_Render;
     }
 
     private static void IL_RunRoutine_MoveNext(ILContext il)
@@ -46,13 +57,19 @@ internal static class TextboxHooks
         Logger.Info(nameof(FancyTextExtended), "Patching IL for Textbox.RunRoutine");
 
         /*
-         IEnumerator code:
+         virtual IEnumerator code:
          
          while (index < Nodes.Count)
          {
              FancyText.Node current = Nodes[index];
              float delay = 0;
               <-- if (CheckFTXNode(this, current)) { }
+              <-- else if (CheckIfFTXAwaitNode(this, current))
+              <-- {
+              <--     IEnumerator awaitEnum = WaitForInputMidPage(this);
+              <--     while (awaitEnum.MoveNext())
+              <--         yield return awaitEnum.Current;
+              <-- }
               <-- else
              if (current is FancyText.Anchor) // if-else chain begins here
              [...]
@@ -90,10 +107,22 @@ internal static class TextboxHooks
         /*
          MoveNext code:
          
+          <-- DynamicData runRoutineData = GetRunRoutineDynamicData(this);
          int state = <>1__state;
          [...]
          switch (state)
-         { [...]
+         {
+         default:
+              <-- if (CheckAwaitRoutine(runRoutineData, out IEnumerator awaitEnum))
+              <-- {
+              <--     if (DoAwaitRoutine(awaitEnum, ref <>2__current))
+              <--         return true;
+              <--     
+              <--     goto IL_08a3; // go to increment index label
+              <-- }
+             return false;
+         [...]
+         
          case 15:
              // current portrait after EaseClose label
              IL_01ac:
@@ -129,11 +158,18 @@ internal static class TextboxHooks
                  <current>5__4 = textbox.Nodes[textbox.index];
 				 <delay>5__5 = 0;
                   <-- if (CheckFTXNode(textbox, <current>5__4)) { }
+                  <-- else if (CheckIfFTXAwaitNode(textbox, <current>5__4))
+                  <-- {
+                  <--     if (TryStartAwaitRoutine(runRoutineData, textbox, ref <>2__current))
+                  <--         return true;
+                  <-- }
                   <-- else
                  if (<current>5__4 is FancyText.Anchor) // if-else chain begins here
                  [...]
+                 
+                 // end of if-else chain
+                 goto IL_08a3; // go to increment index label
              }
-             goto IL_08a3; // go to increment index label
              [...]
              
              // end of case
@@ -142,9 +178,22 @@ internal static class TextboxHooks
 
         // fields
         Type declType = m_RunRoutine_MoveNext.DeclaringType!;
+        FieldInfo f_smCurrent = declType.GetField("<>2__current", BindingFlags.NonPublic | BindingFlags.Instance)!;
         FieldInfo f_current = declType.GetField("<current>5__4", BindingFlags.NonPublic | BindingFlags.Instance)!;
         FieldInfo f_delay = declType.GetField("<delay>5__5", BindingFlags.NonPublic | BindingFlags.Instance)!;
         FieldInfo f_ch = declType.GetField("<ch>5__9", BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+        // new variables
+        VariableDefinition v_runRoutineData = new(il.Import(typeof(DynamicData)));
+        il.Body.Variables.Add(v_runRoutineData);
+
+        VariableDefinition v_awaitEnumToContinue = new(il.Import(typeof(IEnumerator)));
+        il.Body.Variables.Add(v_awaitEnumToContinue);
+
+        // at the beginning
+        cur.EmitLdarg0(); // this (the IEnumerator object)
+        cur.EmitDelegate(GetRunRoutineDynamicData); // GetRunRoutineDynamicData(this)
+        cur.EmitStloc(v_runRoutineData); // DynamicData runRoutineData = ^^^;
 
         // starting from IL_0074
         ILLabel? incrementIndexLabel = default!;
@@ -167,6 +216,26 @@ internal static class TextboxHooks
         cur.EmitDelegate(CheckFTXNode); // CheckFTXNode(textbox, <current>5__4)
         cur.EmitBrtrue(incrementIndexLabel); // if true, go to that label
 
+        ILLabel nextIfElseLabel = cur.DefineLabel();
+
+        cur.EmitLdloc1(); // textbox
+        cur.EmitLdarg0(); // this...
+        cur.EmitLdfld(f_current); // this.<current>5__4
+        cur.EmitDelegate(CheckIfFTXAwaitNode); // CheckIfFTXAwaitNode(textbox, <current>5__4)
+        cur.EmitBrfalse(nextIfElseLabel); // if false, move on to the next check in the if-else chain
+
+        cur.EmitLdloc(v_runRoutineData); // runRoutineData
+        cur.EmitLdloc1(); // textbox
+        cur.EmitLdarg0(); // this...
+        cur.EmitLdflda(f_smCurrent); // ref this.<>2__current
+        cur.EmitDelegate(TryStartAwaitRoutine); // TryStartAwaitRoutine(runRoutineData, textbox, ref <>2__current)
+        cur.EmitBrfalse(incrementIndexLabel); // if false, go to that label
+
+        cur.EmitLdcI4(1); // true
+        cur.EmitRet(); // return true;
+
+        cur.MarkLabel(nextIfElseLabel);
+
         // moving on through IL_01ac
         ILLabel? afterPhonestaticLabel = default!;
 
@@ -187,12 +256,106 @@ internal static class TextboxHooks
         cur.EmitLdarg0(); // this
         cur.EmitLdfld(f_ch); // this.<ch>5__9
         cur.EmitDelegate(ModFlagIfFTXNoTalk); // ModFlagIfFTXNoTalk(flag, textbox, <ch>5__9)
+
+        // now back to the beginning
+        cur.Index = 0;
+
+        // into the default label of the switch block
+        // will be accessed if the state is -1 and the state machine has returned true without changing the state
+        // as is the case for our injected instructions which make the state machine return true
+        cur.GotoNext(instr => instr.MatchSwitch(out _))
+            .GotoNext(
+                MoveType.AfterLabel,
+                instr => instr.MatchLdcI4(0),
+                instr => instr.MatchRet()
+            );
+
+        ILLabel origDefaultCaseLabel = cur.DefineLabel();
+
+        cur.EmitLdloc(v_runRoutineData); // runRoutineData
+        cur.EmitLdloca(v_awaitEnumToContinue); // out awaitEnumToContinue
+        cur.EmitDelegate(CheckAwaitRoutine); // CheckAwaitRoutine(runRoutineData, out IEnumerator awaitEnumToContinue)
+        cur.EmitBrfalse(origDefaultCaseLabel); // if false, execute the default case
+                                               // (will just make the state machine return false)
+
+        cur.EmitLdloc(v_awaitEnumToContinue); // awaitEnumToContinue
+        cur.EmitLdarg0(); // this...
+        cur.EmitLdflda(f_smCurrent); // ref this.<>2__current
+        cur.EmitDelegate(DoAwaitRoutine); // DoAwaitRoutine(awaitEnumToContinue, ref <>2__current)
+        cur.EmitBrfalse(incrementIndexLabel); // if false, go to that label
+
+        cur.EmitLdcI4(1); // true
+        cur.EmitRet(); // return true;
+
+        cur.MarkLabel(origDefaultCaseLabel);
     }
 
-    // leftover :shrug:
+    private static DynamicData GetRunRoutineDynamicData(IEnumerator runRoutine)
+        => DynamicData.For(runRoutine);
+
+    // if true, increment index and move on to the next node
+    // if false, check for base game nodes (or special case nodes if any)
     private static bool CheckFTXNode(Textbox textbox, FancyText.Node current)
     {
         return false;
+    }
+
+    // if true, call TryStartAwaitRoutine below (starts awaitEnum)
+    // if false, check for base game nodes (or any other special case nodes)
+    private static bool CheckIfFTXAwaitNode(Textbox textbox, FancyText.Node current)
+    {
+        if (current is FancyTextExt.AwaitNode awaitNode)
+        {
+            awaitNode.IsVisible = () => textbox.GetCurrentNode() == awaitNode && textbox.waitingForInput;
+            return true;
+        }
+
+        return false;
+    }
+
+    // if true, make the state machine return true
+    // if false, increment index and move on to the next node
+    private static bool TryStartAwaitRoutine(DynamicData runRoutineData, Textbox textbox, ref object _current)
+    {
+        IEnumerator awaitEnum = WaitForInputMidPage(runRoutineData, textbox);
+        runRoutineData.Set(RunRoutine_AwaitEnumField, awaitEnum);
+        
+        return DoAwaitRoutine(awaitEnum, ref _current);
+    }
+
+    // if true, call DoAwaitRoutine below (continues awaitEnum)
+    // if false, proceed with the original execution
+    private static bool CheckAwaitRoutine(DynamicData runRoutineData, out IEnumerator? awaitEnum)
+        => runRoutineData.TryGet(RunRoutine_AwaitEnumField, out awaitEnum) && awaitEnum is not null;
+
+    // if true, make the state machine return true
+    // if false, increment index and move on to the next node
+    private static bool DoAwaitRoutine(IEnumerator awaitEnum, ref object _current)
+    {
+        if (awaitEnum.MoveNext())
+        {
+            _current = awaitEnum.Current;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static IEnumerator WaitForInputMidPage(DynamicData runRoutineData, Textbox textbox)
+    {
+        textbox.PlayIdleAnimation();
+        if (textbox.ease >= 1)
+        {
+            textbox.waitingForInput = true;
+            yield return 0.1f;
+
+            while (!textbox.ContinuePressed())
+                yield return null;
+
+            textbox.waitingForInput = false;
+        }
+
+        runRoutineData.Set(RunRoutine_AwaitEnumField, null);
     }
 
     private static void CheckFTXPhonestaticEventAttr(Textbox textbox, XmlElement xml)
@@ -220,7 +383,7 @@ internal static class TextboxHooks
         Logger.Info(nameof(FancyTextExtended), "Patching IL for Textbox.EaseOpen");
 
         /*
-         IEnumerator code:
+         virtual IEnumerator code:
          
          if (portrait != null)
          {
@@ -342,4 +505,61 @@ internal static class TextboxHooks
 
         return false;
     }
+
+    private static void IL_Update(ILContext il)
+    {
+        ILCursor cur = new(il);
+
+        Logger.Info(nameof(FancyTextExtended), "Patching IL for Textbox.Update");
+
+        /*
+         int currentIndex = Math.Min(index, Nodes.Count);
+          <-- CheckCurrentNodeOnUpdate(this, currentIndex);
+		 for (int i = Start; i < currentIndex; i++) { [...] }
+         */
+
+        cur.GotoNext(MoveType.After, instr => instr.MatchStloc1());
+
+        cur.EmitLdarg0(); // this
+        cur.EmitLdloc1(); // currentIndex
+        cur.EmitDelegate(CheckCurrentNodeOnUpdate); // CheckNodeOnUpdate(this, currentIndex)
+        
+
+        Logger.Info(nameof(FancyTextExtended), il.ToString());
+    }
+
+    private static void CheckCurrentNodeOnUpdate(Textbox textbox, int currentIndex)
+    {
+        if (textbox.GetCurrentNode() is FancyTextExt.AwaitNode awaitNode && textbox.waitingForInput)
+            awaitNode.Timer = textbox.timer;
+    }
+
+    private static void IL_Render(ILContext il)
+    {
+        ILCursor cur = new(il);
+
+        Logger.Info(nameof(FancyTextExtended), "Patching IL for Textbox.Render");
+
+        /*
+             NotWaitingAtAwaitNode(               , this)
+             vvvvvvvvvvvvvvvvvvvvvv               vvvvvvv
+         if (                      waitingForInput       )
+         {
+             [...]
+             GFX.Gui["textboxbutton"].DrawCentered(position);
+         }
+         */
+
+        // go to waitingForInput
+        cur.GotoNext(MoveType.After, instr => instr.MatchLdfld<Textbox>(nameof(Textbox.waitingForInput)));
+
+        cur.EmitLdarg0(); // this
+        cur.EmitDelegate(NotWaitingAtAwaitNode); // NotWaitingAtAwaitNode(waitingForInput, this)
+
+
+        Logger.Info(nameof(FancyTextExtended), il.ToString());
+    }
+
+    private static bool NotWaitingAtAwaitNode(bool waitingForInput, Textbox textbox)
+        => waitingForInput && textbox.GetCurrentNode() is not FancyTextExt.AwaitNode;
 }

@@ -228,6 +228,8 @@ internal static class FancyTextHooks
     {
         ILCursor cur = new(il);
 
+        Logger.Info(nameof(FancyTextExtended), "Patching IL for FancyText.Text.Draw");
+
         /*
          for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
          {
@@ -253,9 +255,6 @@ internal static class FancyTextHooks
         cur.EmitLdarg(5); // start
         // Text_OnDrawCurrentNode(this, j, position, scale, start)
         cur.EmitDelegate(Text_OnDrawCurrentNode);
-
-
-        Logger.Info(nameof(FancyTextExtended), il.ToString());
     }
 
     private static void Text_OnDrawCurrentNode(FancyText.Text text, int i,
@@ -286,6 +285,8 @@ internal static class FancyTextHooks
     {
         ILCursor cur = new(il);
 
+        Logger.Info(nameof(FancyTextExtended), "Patching IL for FancyText.Text.DrawJustifyPerLine");
+
         /*
          for (int j = start; j < num && !(Nodes[j] is NewPage); j++)
          {
@@ -313,12 +314,9 @@ internal static class FancyTextHooks
         cur.EmitLdarg(5); // start
         // Text_OnDrawCurrentNodeJustifyPerLine(this, j, position, scale, justify, num3, start)
         cur.EmitDelegate(Text_OnDrawCurrentNodeJustifyPerLine);
-
-
-        Logger.Info(nameof(FancyTextExtended), il.ToString());
     }
 
-    // This hasn't been tested, so it's not likely to work properly.
+    // This hasn't been tested, so it's not likely to work properly yet.
     private static void Text_OnDrawCurrentNodeJustifyPerLine(FancyText.Text text, int i,
         Vector2 position, Vector2 scale, Vector2 justify, float heightSpan, int start)
     {

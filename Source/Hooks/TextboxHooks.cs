@@ -523,9 +523,6 @@ internal static class TextboxHooks
         cur.EmitLdarg0(); // this
         cur.EmitLdloc1(); // currentIndex
         cur.EmitDelegate(CheckCurrentNodeOnUpdate); // CheckNodeOnUpdate(this, currentIndex)
-        
-
-        Logger.Info(nameof(FancyTextExtended), il.ToString());
     }
 
     private static void CheckCurrentNodeOnUpdate(Textbox textbox, int currentIndex)
@@ -555,9 +552,6 @@ internal static class TextboxHooks
 
         cur.EmitLdarg0(); // this
         cur.EmitDelegate(NotWaitingAtAwaitNode); // NotWaitingAtAwaitNode(waitingForInput, this)
-
-
-        Logger.Info(nameof(FancyTextExtended), il.ToString());
     }
 
     private static bool NotWaitingAtAwaitNode(bool waitingForInput, Textbox textbox)

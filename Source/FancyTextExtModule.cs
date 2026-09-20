@@ -6,6 +6,7 @@ global using Celeste.Mod.FancyTextExtended;
 using System;
 
 using Celeste.Mod.FancyTextExtended.Hooks;
+using MonoMod.ModInterop;
 
 namespace Celeste.Mod.FancyTextExtended;
 
@@ -27,6 +28,8 @@ public class FancyTextExtModule : EverestModule
 
     public override void Load()
     {
+        typeof(FancyTextExtExports).ModInterop();
+
         FancyTextHooks.Load();
         TextboxHooks.Load();
         MiniTextboxHooks.Load();

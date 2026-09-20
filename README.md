@@ -7,7 +7,7 @@ When using features from this mod, please ensure that you include it in your `ev
 ```yaml
   Dependencies:
     - Name: FancyTextExtended
-      Version: 1.0.0
+      Version: 1.0.1
 ```
 
 ## Dialog commands

@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <AssemblyName>FancyTextExtended</AssemblyName>
+        <Authors>SilverDorian46</Authors>
         <RootNamespace>Celeste.Mod.FancyTextExtended</RootNamespace>
         <LangVersion>latest</LangVersion>
         <CelestePrefix Condition="'$(CelestePrefix)' == '' And Exists('..\..\..\Celeste.dll')">..\..\..</CelestePrefix>
